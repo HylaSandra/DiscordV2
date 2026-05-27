@@ -843,6 +843,12 @@ textarea.form-control:focus {
     text-transform: uppercase;
 }
 
+.chat-room-badge--danger {
+    border-color: rgba(255, 116, 144, 0.36);
+    background: rgba(255, 92, 122, 0.16);
+    color: #ffb0bf;
+}
+
 .message-list {
     display: grid;
     gap: 1rem;

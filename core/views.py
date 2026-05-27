@@ -2,6 +2,8 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
 
 from chat.models import Channel
 from users.models import User
@@ -69,6 +71,30 @@ def notifications(request):
         "actor", "message", "channel", "thread", "thread__user_one", "thread__user_two"
     )
     return render(request, "core/notifications.html", {"notifications": items})
+
+
+def serialize_notification(item):
+    return {
+        "id": item.pk,
+        "actorUsername": item.actor.username,
+        "verb": item.verb,
+        "locationLabel": item.get_location_label(),
+        "locationBadge": item.get_location_badge(),
+        "locationMeta": item.get_location_meta(),
+        "createdAt": timezone.localtime(item.created_at).strftime("%d.%m.%Y %H:%M"),
+        "isRead": item.is_read,
+        "openUrl": reverse("core:notification_open", args=[item.pk]),
+    }
+
+
+@login_required
+def notifications_feed(request):
+    items = request.user.notifications.select_related(
+        "actor", "message", "channel", "thread", "thread__user_one", "thread__user_two"
+    )
+    return JsonResponse(
+        {"notifications": [serialize_notification(item) for item in items[:50]]}
+    )
 
 
 @login_required

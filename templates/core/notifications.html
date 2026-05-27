@@ -11,7 +11,12 @@
         </div>
     </div>
 
-    <div class="notification-list">
+    <div
+        class="notification-list"
+        data-notification-list
+        data-notification-feed-url="{% url 'core:notifications_feed' %}"
+        data-notification-empty-text="Brak powiadomień."
+    >
         {% for item in notifications %}
             <a class="notification-card {% if not item.is_read %}notification-card--new{% endif %}" href="{% url 'core:notification_open' item.pk %}">
                 <div class="notification-card__icon"><i class="bi bi-bell-fill"></i></div>
@@ -25,7 +30,7 @@
                     </div>
                 </div>
                 {% if not item.is_read %}
-                    <span class="badge rounded-pill text-bg-info">Nowe</span>
+                    <span class="chat-room-badge">Nowe</span>
                 {% endif %}
             </a>
         {% empty %}

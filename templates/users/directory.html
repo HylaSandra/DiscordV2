@@ -32,7 +32,7 @@
                                     <h2 class="h6 mb-0">{{ member.username }}</h2>
                                     <span class="badge rounded-pill text-bg-dark border border-secondary-subtle">{{ member.get_role_display }}</span>
                                     {% if member.is_currently_blocked %}
-                                        <span class="badge rounded-pill text-bg-danger">Zablokowany</span>
+                                        <span class="chat-room-badge chat-room-badge--danger">Zablokowany</span>
                                     {% endif %}
                                 </div>
                                 <div class="text-secondary small">{{ member.email }} • {{ member.bio|default:"Brak opisu." }}</div>

@@ -7,6 +7,18 @@ def _fresh_user(user):
     return user.__class__.objects.select_related("active_voice_channel").get(pk=user.pk)
 
 
+def _serialize_unread_notification(item):
+    return {
+        "id": item.pk,
+        "actorUsername": item.actor.username,
+        "verb": item.verb,
+        "locationLabel": item.get_location_label(),
+        "locationBadge": item.get_location_badge(),
+        "channelId": item.channel_id,
+        "threadId": item.thread_id,
+    }
+
+
 def build_navigation_context(user):
     viewer = _fresh_user(user)
 
@@ -22,6 +34,9 @@ def build_navigation_context(user):
     ).order_by("name")
     dm_threads = DirectMessageThread.objects.for_user(viewer)
     unread_items = viewer.notifications.filter(is_read=False)
+    unread_preview = unread_items.select_related(
+        "actor", "channel", "thread", "thread__user_one", "thread__user_two"
+    )[:5]
 
     return {
         "viewer": viewer,
@@ -39,6 +54,9 @@ def build_navigation_context(user):
             .values_list("thread_id", flat=True)
             .distinct()
         ),
+        "latest_unread_notifications": [
+            _serialize_unread_notification(item) for item in unread_preview
+        ],
     }
 
 
@@ -69,4 +87,5 @@ def serialize_navigation_state(user):
         ),
         "effectiveStatus": viewer.effective_status,
         "roleLabel": viewer.get_role_display(),
+        "latestUnreadNotifications": context["latest_unread_notifications"],
     }
