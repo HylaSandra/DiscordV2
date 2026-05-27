@@ -396,7 +396,7 @@ def thread_detail(request, pk):
         message_form=MessageForm(thread=thread),
         conversation_type="direct",
         room_label="Wiadomości prywatne",
-        room_badge="1:1",
+        room_badge="DM",
         viewer_can_moderate_messages=False,
     )
     context["thread"] = thread
@@ -416,27 +416,20 @@ def start_thread(request, username):
     return redirect(thread.get_absolute_url())
 
 
-@login_required
-def voice_room(request, slug):
-    channel = get_object_or_404(
-        Channel.objects.select_related("created_by").prefetch_related(
-            "members", "moderators"
-        ),
-        slug=slug,
-        kind=Channel.KIND_VOICE,
-    )
-    ensure_member_access(request.user, channel)
+def build_voice_room_context(request, channel, mode):
     active_rows = build_channel_member_rows(
         channel,
         request.user,
         users=channel.active_voice_users.select_related("active_voice_channel").all(),
     )
     active_participants = [row["member"] for row in active_rows]
-    context = {
+    return {
         "channel": channel,
         "active_participant_rows": active_rows,
         "voice_room_data": {
+            "mode": mode,
             "websocketPath": f"/ws/voice/{channel.slug}/",
+            "sessionUrl": reverse("chat:voice_session", args=[channel.slug]),
             "viewerId": request.user.pk,
             "viewerName": request.user.username,
             "viewerAvatar": request.user.avatar_url,
@@ -458,7 +451,34 @@ def voice_room(request, slug):
             else ""
         ),
     }
+
+
+@login_required
+def voice_room(request, slug):
+    channel = get_object_or_404(
+        Channel.objects.select_related("created_by").prefetch_related(
+            "members", "moderators"
+        ),
+        slug=slug,
+        kind=Channel.KIND_VOICE,
+    )
+    ensure_member_access(request.user, channel)
+    context = build_voice_room_context(request, channel, mode="preview")
     return render(request, "chat/voice_room.html", context)
+
+
+@login_required
+def voice_session(request, slug):
+    channel = get_object_or_404(
+        Channel.objects.select_related("created_by").prefetch_related(
+            "members", "moderators"
+        ),
+        slug=slug,
+        kind=Channel.KIND_VOICE,
+    )
+    ensure_member_access(request.user, channel)
+    context = build_voice_room_context(request, channel, mode="session")
+    return render(request, "chat/voice_session.html", context)
 
 
 @login_required

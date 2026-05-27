@@ -1,10 +1,12 @@
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from chat.models import Channel
 from users.models import User
 
+from .navigation import serialize_navigation_state
 from .models import Notification
 
 
@@ -76,6 +78,11 @@ def notification_open(request, pk):
         notification.is_read = True
         notification.save(update_fields=["is_read"])
     return redirect(notification.get_target_url())
+
+
+@login_required
+def ui_state(request):
+    return JsonResponse(serialize_navigation_state(request.user))
 
 
 def custom_404(request, exception):

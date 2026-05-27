@@ -13,7 +13,11 @@
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     {% block extra_head %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body
+    class="{% block body_class %}{% endblock %}"
+    data-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}"
+    data-ui-state-url="{% if user.is_authenticated %}{% url 'core:ui_state' %}{% endif %}"
+>
     <div class="site-glow site-glow-a"></div>
     <div class="site-glow site-glow-b"></div>
 
@@ -52,11 +56,11 @@
                             <a class="nav-link" href="{% url 'users:reports' %}">Zgłoszenia</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link position-relative" href="{% url 'core:notifications' %}">
+                            <a class="nav-link position-relative" data-notifications-link href="{% url 'core:notifications' %}">
                                 Powiadomienia
-                                {% if unread_notifications_count %}
-                                    <span class="notification-pill">{{ unread_notifications_count }}</span>
-                                {% endif %}
+                                <span class="notification-pill {% if not unread_notifications_count %}d-none{% endif %}" data-notification-pill>
+                                    {{ unread_notifications_count }}
+                                </span>
                             </a>
                         </li>
                         <li class="nav-item">
@@ -91,7 +95,10 @@
                                 <span>Role i status</span>
                             </div>
                             <div class="d-flex align-items-center gap-3">
-                                <div class="avatar-badge {% if user.effective_status == 'online' %}is-online{% else %}is-offline{% endif %}">
+                                <div
+                                    class="avatar-badge {% if user.effective_status == 'online' %}is-online{% else %}is-offline{% endif %}"
+                                    data-current-user-avatar
+                                >
                                     {% if user.avatar_url %}
                                         <img src="{{ user.avatar_url }}" alt="{{ user.username }}">
                                     {% else %}
@@ -100,12 +107,12 @@
                                 </div>
                                 <div>
                                     <div class="fw-semibold">{{ user.username }}</div>
-                                    <div class="text-secondary small">{{ user.get_role_display }} • {{ user.effective_status }}</div>
-                                    {% if user.active_voice_channel %}
-                                        <div class="text-accent small mt-1">
-                                            <i class="bi bi-mic-fill me-1"></i>{{ user.voice_presence_text }}
-                                        </div>
-                                    {% endif %}
+                                    <div class="text-secondary small" data-user-status-line>
+                                        {{ user.get_role_display }} • <span data-user-status-value>{{ user.effective_status }}</span>
+                                    </div>
+                                    <div class="text-accent small mt-1 {% if not user.active_voice_channel %}d-none{% endif %}" data-user-voice-line>
+                                        <i class="bi bi-mic-fill me-1"></i><span data-user-voice-text>{% if user.active_voice_channel %}{{ user.voice_presence_text }}{% endif %}</span>
+                                    </div>
                                 </div>
                             </div>
                         </section>
@@ -117,14 +124,12 @@
                             </div>
                             <div class="stack-list">
                                 {% for channel in nav_text_channels %}
-                                    <a class="stack-link {% if channel.id in unread_channel_ids %}stack-link--unread{% endif %}" href="{{ channel.get_absolute_url }}">
+                                    <a class="stack-link {% if channel.id in unread_channel_ids %}stack-link--unread{% endif %}" data-nav-channel-id="{{ channel.id }}" href="{{ channel.get_absolute_url }}">
                                         <span class="stack-link__content">
                                             <span class="stack-link__label"># {{ channel.name }}</span>
                                         </span>
                                         <span class="stack-link__meta">
-                                            {% if channel.id in unread_channel_ids %}
-                                                <span class="stack-link__dot" title="Nieprzeczytane wiadomości"></span>
-                                            {% endif %}
+                                            <span class="stack-link__dot {% if channel.id not in unread_channel_ids %}d-none{% endif %}" data-unread-channel-dot="{{ channel.id }}" title="Nieprzeczytane wiadomości"></span>
                                         </span>
                                     </a>
                                 {% empty %}
@@ -139,17 +144,15 @@
                             </div>
                             <div class="stack-list">
                                 {% for channel in nav_voice_channels %}
-                                    <a class="stack-link" href="{{ channel.get_absolute_url }}">
+                                    <a class="stack-link" data-nav-voice-channel-id="{{ channel.id }}" href="{{ channel.get_absolute_url }}">
                                         <span class="stack-link__content">
                                             <i class="bi bi-mic-fill"></i>
                                             <span class="stack-link__label">{{ channel.name }}</span>
                                         </span>
                                         <span class="stack-link__meta">
-                                            {% if channel.active_voice_count %}
-                                                <span class="stack-link__pill">
-                                                    Na żywo{% if channel.active_voice_count > 1 %} · {{ channel.active_voice_count }}{% endif %}
-                                                </span>
-                                            {% endif %}
+                                            <span class="stack-link__pill {% if not channel.active_voice_count %}d-none{% endif %}" data-voice-channel-pill="{{ channel.id }}">
+                                                Na żywo{% if channel.active_voice_count > 1 %} · {{ channel.active_voice_count }}{% endif %}
+                                            </span>
                                         </span>
                                     </a>
                                 {% empty %}
@@ -164,7 +167,7 @@
                             </div>
                             <div class="stack-list">
                                 {% for thread in nav_dm_threads %}
-                                    <a class="stack-link {% if thread.id in unread_thread_ids %}stack-link--unread{% endif %}" href="{{ thread.get_absolute_url }}">
+                                    <a class="stack-link {% if thread.id in unread_thread_ids %}stack-link--unread{% endif %}" data-nav-thread-id="{{ thread.id }}" href="{{ thread.get_absolute_url }}">
                                         <span class="stack-link__content">
                                             <i class="bi bi-chat-left-text"></i>
                                             <span class="stack-link__label">
@@ -172,9 +175,7 @@
                                             </span>
                                         </span>
                                         <span class="stack-link__meta">
-                                            {% if thread.id in unread_thread_ids %}
-                                                <span class="stack-link__dot" title="Nieprzeczytane wiadomości"></span>
-                                            {% endif %}
+                                            <span class="stack-link__dot {% if thread.id not in unread_thread_ids %}d-none{% endif %}" data-unread-thread-dot="{{ thread.id }}" title="Nieprzeczytane wiadomości"></span>
                                         </span>
                                     </a>
                                 {% empty %}

@@ -525,6 +525,9 @@
                 },
                 body: "_read=1",
             });
+            if (typeof window.discordRefreshUiState === "function") {
+                window.discordRefreshUiState();
+            }
         } catch (error) {
             console.debug("Mark read skipped", error);
         }

@@ -22,6 +22,7 @@ from .views import (
     toggle_reaction,
     unban_channel_member,
     voice_room,
+    voice_session,
 )
 
 app_name = "chat"
@@ -60,6 +61,7 @@ urlpatterns = [
     path("dm/<int:pk>/", thread_detail, name="thread_detail"),
     path("dm/<int:pk>/post/", post_thread_message, name="post_thread_message"),
     path("dm/<int:pk>/read/", mark_thread_read, name="mark_thread_read"),
+    path("voice/<slug:slug>/session/", voice_session, name="voice_session"),
     path("voice/<slug:slug>/", voice_room, name="voice_room"),
     path("messages/<int:pk>/edit/", edit_message, name="edit_message"),
     path("messages/<int:pk>/delete/", delete_message, name="delete_message"),

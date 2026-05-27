@@ -5,6 +5,7 @@
     }
 
     const config = JSON.parse(configNode.textContent);
+    const mode = config.mode || "preview";
     const joinButton = document.getElementById("voice-join");
     const muteButton = document.getElementById("voice-mute");
     const leaveButton = document.getElementById("voice-leave");
@@ -36,7 +37,9 @@
     }
 
     function setStatus(text) {
-        statusNode.textContent = text;
+        if (statusNode) {
+            statusNode.textContent = text;
+        }
     }
 
     function describeMicrophoneError(error) {
@@ -51,7 +54,7 @@
             return "Kanał głosowy wymaga bezpiecznego połączenia HTTPS.";
         }
 
-        if (window.top !== window.self) {
+        if (window.top !== window.self && mode !== "session") {
             return "Ta strona jest otwarta wewnątrz ramki. Otwórz aplikację bezpośrednio w przeglądarce i zezwól na mikrofon.";
         }
 
@@ -101,6 +104,10 @@
     }
 
     function renderParticipants() {
+        if (!participantsNode) {
+            return;
+        }
+
         const html = orderedParticipants().map(
             (user) => `
             <div class="member-card">
@@ -164,6 +171,10 @@
     }
 
     function attachRemoteStream(userId, stream) {
+        if (!remoteAudioHost) {
+            return;
+        }
+
         let audio = document.getElementById(`remote-audio-${userId}`);
         if (!audio) {
             audio = document.createElement("audio");
@@ -225,6 +236,25 @@
         });
     }
 
+    function openVoiceSessionWindow() {
+        const popup = window.open(
+            config.sessionUrl || window.location.href,
+            "discordv2-voice-session",
+            "popup=yes,width=520,height=780,resizable=yes,scrollbars=yes"
+        );
+
+        if (!popup) {
+            const message =
+                "Przeglądarka zablokowała okno rozmowy głosowej. Zezwól na wyskakujące okna dla tej strony.";
+            setStatus(message);
+            toast("Kanał głosowy", message);
+            return null;
+        }
+
+        popup.focus();
+        return popup;
+    }
+
     function connectSocket() {
         if (socket && socket.readyState === WebSocket.OPEN) {
             return Promise.resolve();
@@ -243,7 +273,9 @@
             socket.addEventListener("open", () => {
                 if (!hasJoined) {
                     setStatus(
-                        "Kliknij Dołącz do rozmowy, aby połączyć się z kanałem głosowym i zacząć rozmawiać."
+                        mode === "session"
+                            ? "Łączenie z kanałem głosowym..."
+                            : "Kliknij Dołącz do rozmowy, aby otworzyć aktywną sesję głosową i dalej korzystać z innych części aplikacji."
                     );
                 }
                 resolve();
@@ -356,7 +388,11 @@
                 socket = null;
                 socketReady = null;
                 if (!hasJoined) {
-                    setStatus("Podgląd kanału głosowego został zamknięty.");
+                    setStatus(
+                        mode === "session"
+                            ? "Sesja głosowa została zamknięta."
+                            : "Podgląd kanału głosowego został zamknięty."
+                    );
                 } else {
                     setStatus("Połączenie z kanałem zostało zamknięte.");
                 }
@@ -374,7 +410,11 @@
         return socketReady;
     }
 
-    async function joinVoice() {
+    async function joinVoiceSession() {
+        if (hasJoined || localStream) {
+            return;
+        }
+
         try {
             await connectSocket();
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -396,6 +436,26 @@
             setStatus(details);
             toast("Kanał głosowy", details);
         }
+    }
+
+    function joinVoice() {
+        if (mode === "session") {
+            joinVoiceSession();
+            return;
+        }
+
+        const popup = openVoiceSessionWindow();
+        if (!popup) {
+            return;
+        }
+
+        setStatus(
+            "Rozmowa głosowa działa w osobnym oknie. Możesz przejść do kanałów tekstowych lub wiadomości prywatnych."
+        );
+        toast(
+            "Kanał głosowy",
+            "Sesja głosowa została otwarta w osobnym oknie."
+        );
     }
 
     function leaveVoice() {
@@ -422,7 +482,10 @@
         muted = false;
         muteButton.textContent = "Wycisz mikrofon";
         setStatus("Rozłączono z kanałem głosowym.");
-        connectSocket().catch(() => {});
+
+        if (mode === "preview") {
+            connectSocket().catch(() => {});
+        }
     }
 
     function toggleMute() {
@@ -440,9 +503,26 @@
 
     renderParticipants();
     connectSocket().catch(() => {
-        setStatus("Nie udało się uruchomić podglądu kanału głosowego.");
+        setStatus(
+            mode === "session"
+                ? "Nie udało się uruchomić sesji głosowej."
+                : "Nie udało się uruchomić podglądu kanału głosowego."
+        );
     });
-    joinButton.addEventListener("click", joinVoice);
-    leaveButton.addEventListener("click", leaveVoice);
-    muteButton.addEventListener("click", toggleMute);
+
+    if (joinButton) {
+        joinButton.addEventListener("click", joinVoice);
+    }
+    if (leaveButton) {
+        leaveButton.addEventListener("click", leaveVoice);
+    }
+    if (muteButton) {
+        muteButton.addEventListener("click", toggleMute);
+    }
+
+    if (mode === "session") {
+        window.addEventListener("load", () => {
+            joinVoiceSession();
+        });
+    }
 })();
