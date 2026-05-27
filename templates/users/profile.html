@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Profil • DiscordV2{% endblock %}
+
+{% block content %}
+<section class="panel-shell panel-shell--wide">
+    <div class="section-heading">
+        <div>
+            <span class="hero-kicker">Profil użytkownika</span>
+            <h1 class="section-title">Edytuj konto</h1>
+        </div>
+    </div>
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="profile-card">
+                <div class="avatar-badge avatar-badge--xl {% if user.effective_status == 'online' %}is-online{% else %}is-offline{% endif %}">
+                    {% if user.avatar_url %}
+                        <img src="{{ user.avatar_url }}" alt="{{ user.username }}">
+                    {% else %}
+                        <span>{{ user.username|slice:":1"|upper }}</span>
+                    {% endif %}
+                </div>
+                <h2>{{ user.username }}</h2>
+                <p class="text-secondary mb-1">{{ user.email }}</p>
+                <span class="badge text-bg-dark border border-secondary-subtle">{{ user.get_role_display }}</span>
+                {% if user.active_voice_channel %}
+                    <div class="text-accent small mt-3">
+                        <i class="bi bi-mic-fill me-1"></i>{{ user.voice_presence_text }}
+                    </div>
+                {% endif %}
+                <p class="mt-3 mb-0 text-secondary">{{ user.bio|default:"Brak opisu." }}</p>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <form method="post" enctype="multipart/form-data" class="panel-subtle">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ field.label }}</label>
+                        {% if field.name == "status" %}
+                            <div class="app-select-shell">
+                                {{ field }}
+                            </div>
+                        {% elif field.name == "avatar" %}
+                            <div class="profile-file-picker">
+                                {{ field }}
+                                <label class="profile-file-picker__button btn btn-accent-outline composer-action-btn" for="{{ field.id_for_label }}">Wybierz plik</label>
+                                <div class="profile-file-picker__name" id="avatar-file-name">
+                                    {% if user.avatar %}
+                                        {{ user.avatar.name|cut:"avatars/" }}
+                                    {% else %}
+                                        Nie wybrano pliku
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% else %}
+                            {{ field }}
+                        {% endif %}
+                        {% if field.errors %}
+                            <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <button class="btn btn-accent" type="submit">Zapisz profil</button>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const avatarInput = document.getElementById("id_avatar");
+        const avatarFileName = document.getElementById("avatar-file-name");
+
+        if (!avatarInput || !avatarFileName) {
+            return;
+        }
+
+        avatarInput.addEventListener("change", () => {
+            const file = avatarInput.files && avatarInput.files.length ? avatarInput.files[0] : null;
+            avatarFileName.textContent = file ? file.name : "Nie wybrano pliku";
+        });
+    });
+</script>
+{% endblock %}

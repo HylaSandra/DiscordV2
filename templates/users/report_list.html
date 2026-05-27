@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Zgłoszenia • DiscordV2{% endblock %}
+
+{% block content %}
+<section class="panel-shell panel-shell--wide">
+    <div class="section-heading">
+        <div>
+            <span class="hero-kicker">Moderacja</span>
+            {% if is_moderation_view %}
+                <h1 class="section-title">Panel zgłoszeń użytkowników</h1>
+                <p class="text-secondary mb-0">Przeglądaj nowe zgłoszenia, aktualizuj ich status i zapisuj decyzje moderatorów.</p>
+            {% else %}
+                <h1 class="section-title">Moje zgłoszenia</h1>
+                <p class="text-secondary mb-0">Tutaj zobaczysz historię swoich zgłoszeń i status ich rozpatrzenia.</p>
+            {% endif %}
+        </div>
+        <form method="get" class="report-filter-form">
+            <div class="app-select-shell report-filter-select">
+                <select class="form-select discord-select app-select-field" name="status" aria-label="Filtruj po statusie">
+                    <option value="">Wszystkie statusy</option>
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="btn btn-accent composer-action-btn" type="submit">Filtruj</button>
+        </form>
+    </div>
+
+    <div class="report-list">
+        {% for row in report_rows %}
+            {% with report=row.report %}
+                <article class="report-card">
+                    <div class="report-card__header">
+                        <div>
+                            <div class="chat-shell__eyebrow">
+                                <span class="hero-kicker">Zgłoszenie #{{ report.id }}</span>
+                                <span class="chat-room-badge">{{ report.get_status_display }}</span>
+                                <span class="chat-room-badge">{{ report.get_reason_display }}</span>
+                            </div>
+                            <h2 class="h5 mb-1">{{ report.target_user.username }}</h2>
+                            <div class="text-secondary small">
+                                Zgłaszający: {{ report.reporter.username }} • {{ report.created_at|date:"d.m.Y H:i" }}
+                                {% if report.reviewed_by %}
+                                    • Ostatnia decyzja: {{ report.reviewed_by.username }}{% if report.reviewed_at %} ({{ report.reviewed_at|date:"d.m.Y H:i" }}){% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% if report.target_user != user %}
+                                <a class="btn btn-accent-outline btn-sm" href="{% url 'chat:start_thread' report.target_user.username %}">Wiadomość prywatna</a>
+                            {% endif %}
+                            {% if is_moderation_view and report.target_user != user %}
+                                <form method="post" action="{% url 'users:toggle_block' report.target_user.pk %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                    <button class="btn btn-chat-danger btn-sm" type="submit">
+                                        {% if report.target_user.is_currently_blocked %}Odblokuj{% else %}Zablokuj{% endif %}
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="report-card__body">
+                        <div class="report-card__section">
+                            <div class="report-card__label">Opis zgłoszenia</div>
+                            <p class="mb-0">{{ report.description|linebreaksbr }}</p>
+                        </div>
+
+                        {% if report.moderator_note %}
+                            <div class="report-card__section report-card__section--muted">
+                                <div class="report-card__label">Notatka moderatora</div>
+                                <p class="mb-0">{{ report.moderator_note|linebreaksbr }}</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    {% if is_moderation_view %}
+                        <form method="post" action="{% url 'users:review_report' report.pk %}" class="report-review-form">
+                            {% csrf_token %}
+                            <div class="app-select-shell report-review-form__status">
+                                {{ row.review_form.status }}
+                            </div>
+                            <div class="report-review-form__note">
+                                {{ row.review_form.moderator_note }}
+                            </div>
+                            <button class="btn btn-accent composer-action-btn" type="submit">Zapisz decyzję</button>
+                        </form>
+                    {% endif %}
+                </article>
+            {% endwith %}
+        {% empty %}
+            <div class="empty-shell">
+                {% if is_moderation_view %}
+                    Brak zgłoszeń pasujących do wybranego filtra.
+                {% else %}
+                    Nie masz jeszcze zapisanych zgłoszeń użytkowników.
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

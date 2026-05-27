@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Powiadomienia • DiscordV2{% endblock %}
+
+{% block content %}
+<section class="panel-shell panel-shell--wide">
+    <div class="section-heading">
+        <div>
+            <span class="hero-kicker">Aktywność</span>
+            <h1 class="section-title">Powiadomienia</h1>
+        </div>
+    </div>
+
+    <div class="notification-list">
+        {% for item in notifications %}
+            <a class="notification-card {% if not item.is_read %}notification-card--new{% endif %}" href="{% url 'core:notification_open' item.pk %}">
+                <div class="notification-card__icon"><i class="bi bi-bell-fill"></i></div>
+                <div class="flex-grow-1">
+                    <div class="notification-card__topline">
+                        <strong>{{ item.actor.username }}</strong> {{ item.verb }}{% if item.get_location_label %} {{ item.get_location_label }}{% endif %}
+                    </div>
+                    <div class="notification-card__meta">
+                        <span class="chat-room-badge">{{ item.get_location_badge }}</span>
+                        <span class="text-secondary small">{{ item.get_location_meta }} • {{ item.created_at|date:"d.m.Y H:i" }}</span>
+                    </div>
+                </div>
+                {% if not item.is_read %}
+                    <span class="badge rounded-pill text-bg-info">Nowe</span>
+                {% endif %}
+            </a>
+        {% empty %}
+            <div class="empty-shell">Brak powiadomień.</div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

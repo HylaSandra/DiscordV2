@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}DiscordV2 • Start{% endblock %}
+
+{% block content %}
+<section class="hero-shell">
+    <span class="hero-kicker">Django • WebSockets • Render</span>
+    <h1 class="hero-title">Komunikator webowy inspirowany Discordem.</h1>
+    <p class="hero-copy">
+        Rejestracja użytkowników, dynamiczne role, komunikacja realtime, wiadomości prywatne, kanały tekstowe i głosowe,
+        nagrania audio, obrazki, emoji, moderacja i status obecności w jednej aplikacji.
+    </p>
+    <div class="d-flex flex-wrap gap-3 mt-4">
+        <a class="btn btn-accent btn-lg" href="{% url 'users:register' %}">Załóż konto</a>
+        <a class="btn btn-accent-outline btn-lg" href="{% url 'users:login' %}">Zaloguj się</a>
+    </div>
+</section>
+
+<section class="mt-5">
+    <div class="row g-4">
+        <div class="col-md-6 col-xl-3">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="bi bi-people-fill"></i></div>
+                <h3>Role i dostęp</h3>
+                <p>Administrator, moderator i użytkownik z realnym ograniczeniem uprawnień.</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="bi bi-chat-dots-fill"></i></div>
+                <h3>Czat i wiadomości prywatne</h3>
+                <p>Wiadomości tekstowe, edycja, usuwanie, historia rozmów i komunikacja 1:1.</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="bi bi-mic-fill"></i></div>
+                <h3>Voice i audio</h3>
+                <p>Kanały głosowe WebRTC oraz wysyłanie wiadomości głosowych w czacie.</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="bi bi-bell-fill"></i></div>
+                <h3>Wyszukiwanie i powiadomienia</h3>
+                <p>Status obecności, powiadomienia o nowych wiadomościach i szybkie wyszukiwanie.</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

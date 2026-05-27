@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Kanały • DiscordV2{% endblock %}
+
+{% block content %}
+<section class="panel-shell panel-shell--wide">
+    <div class="section-heading">
+        <div>
+            <span class="hero-kicker">Kanały</span>
+            <h1 class="section-title">Zarządzanie kanałami</h1>
+        </div>
+        <a class="btn btn-accent composer-action-btn channel-panel-action" href="{% url 'chat:create_channel' %}">Nowy kanał</a>
+    </div>
+
+    <div class="row g-3">
+        {% for row in channel_rows %}
+            {% with channel=row.channel %}
+                <div class="col-12">
+                    <div class="channel-card">
+                        <div>
+                            <div class="channel-card__header">
+                                <span class="channel-glyph">
+                                    {% if channel.is_voice %}<i class="bi bi-mic-fill"></i>{% else %}#{% endif %}
+                                </span>
+                                <h2 class="h6 mb-0">{{ channel.name }}</h2>
+                                <span class="chat-room-badge">{{ channel.get_kind_display }}</span>
+                                <span class="chat-room-badge">{{ channel.get_audience_display }}</span>
+                                {% if row.is_owner %}
+                                    <span class="chat-room-badge">Właściciel</span>
+                                {% elif row.is_channel_moderator %}
+                                    <span class="chat-room-badge">Moderator kanału</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-secondary mb-0">{{ channel.description|default:"Brak opisu kanału." }}</p>
+                        </div>
+                        <div class="channel-card__actions">
+                            <a class="btn btn-accent-outline composer-action-btn channel-panel-action" href="{{ channel.get_absolute_url }}">Otwórz</a>
+                            <a class="btn btn-accent composer-action-btn channel-panel-action" href="{% url 'chat:manage_channel' channel.slug %}">Zarządzaj</a>
+                        </div>
+                    </div>
+                </div>
+            {% endwith %}
+        {% empty %}
+            <div class="col-12">
+                <div class="empty-shell">Nie masz jeszcze kanałów, którymi możesz zarządzać.</div>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

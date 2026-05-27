@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ channel.name }} • Głos{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-12 col-xl-8">
+        <section class="panel-shell panel-shell--wide">
+            <div class="section-heading">
+                <div>
+                    <div class="chat-shell__eyebrow">
+                        <span class="hero-kicker">Kanał głosowy</span>
+                        <span class="chat-room-badge">{{ channel.get_audience_display }}</span>
+                    </div>
+                    <h1 class="section-title">{{ channel.name }}</h1>
+                    <p class="text-secondary mb-0">{{ channel.description|default:"Rozmowa audio w czasie rzeczywistym." }}</p>
+                </div>
+                {% if chat_manage_url %}
+                    <a class="btn btn-accent-outline btn-sm" href="{{ chat_manage_url }}">Zarządzaj kanałem</a>
+                {% endif %}
+            </div>
+
+            <div class="voice-stage">
+                <div class="voice-stage__controls">
+                    <button id="voice-join" class="btn btn-accent btn-sm composer-action-btn">Dołącz do rozmowy</button>
+                    <button id="voice-mute" class="btn btn-accent-outline btn-sm composer-action-btn" disabled>Wycisz mikrofon</button>
+                    <button id="voice-leave" class="btn btn-chat-danger btn-sm composer-action-btn" disabled>
+                        <i class="bi bi-box-arrow-right me-1"></i>Opuść kanał
+                    </button>
+                </div>
+                <div id="voice-status" class="text-secondary">Kliknij Dołącz do rozmowy, aby połączyć się z kanałem głosowym i zacząć rozmawiać.</div>
+                <div id="remote-audio-host"></div>
+            </div>
+        </section>
+    </div>
+    <div class="col-12 col-xl-4">
+        <section class="panel-shell h-100">
+            <div class="panel-shell__header">
+                <span>Uczestnicy</span>
+            </div>
+            <div id="voice-participants" class="member-list">
+                {% for row in active_participant_rows %}
+                    {% with participant=row.member %}
+                        <div class="member-card">
+                            <div class="avatar-badge is-online">
+                                {% if participant.avatar_url %}
+                                    <img src="{{ participant.avatar_url }}" alt="{{ participant.username }}">
+                                {% else %}
+                                    <span>{{ participant.username|slice:":1"|upper }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <div class="fw-semibold">{{ participant.username }}</div>
+                                    {% if row.is_owner %}
+                                        <span class="chat-room-badge">Właściciel</span>
+                                    {% elif row.is_channel_moderator %}
+                                        <span class="chat-room-badge">Moderator kanału</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-secondary small">{% if participant == user %}Ty{% else %}Połączony(a){% endif %}</div>
+                            </div>
+                        </div>
+                    {% endwith %}
+                {% empty %}
+                    <div class="empty-shell">Nikogo nie ma na kanale.</div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</div>
+
+{{ voice_room_data|json_script:"voice-room-data" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/voice-room.js' %}" defer></script>
+{% endblock %}

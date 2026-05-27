@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Zarządzaj {{ channel.name }} • DiscordV2{% endblock %}
+
+{% block content %}
+<section class="panel-shell panel-shell--wide">
+    <div class="section-heading">
+        <div>
+            <span class="hero-kicker">Kanały</span>
+            <h1 class="section-title">Zarządzaj {{ channel.name }}</h1>
+            <p class="text-secondary mb-0">{{ channel.get_kind_display }} • {{ channel.get_audience_display }}</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-accent-outline btn-sm" href="{% url 'chat:manage_channels' %}">Wróć do kanałów</a>
+            <a class="btn btn-accent btn-sm" href="{{ channel.get_absolute_url }}">Otwórz kanał</a>
+        </div>
+    </div>
+
+    <div class="row g-4 channel-admin-layout">
+        <div class="col-12 col-xxl-7">
+            <section class="panel-subtle h-100">
+                <div class="panel-subtle__head">
+                    <h2>Uczestnicy</h2>
+                    <p>Właściciel jest zawsze na górze listy. Moderatorzy kanału mogą moderować wiadomości, zarządzać uczestnikami i blokować dostęp do kanału.</p>
+                </div>
+
+                <div class="member-list">
+                    {% for row in member_rows %}
+                        {% with member=row.member %}
+                            <div class="member-card channel-admin-member-card">
+                                <div class="avatar-badge {% if member.effective_status == 'online' %}is-online{% else %}is-offline{% endif %}">
+                                    {% if member.avatar_url %}
+                                        <img src="{{ member.avatar_url }}" alt="{{ member.username }}">
+                                    {% else %}
+                                        <span>{{ member.username|slice:":1"|upper }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                        <div class="fw-semibold">{{ member.username }}</div>
+                                        {% if row.is_owner %}
+                                            <span class="chat-room-badge">Właściciel</span>
+                                        {% elif row.is_channel_moderator %}
+                                            <span class="chat-room-badge">Moderator kanału</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-secondary small">{{ member.get_role_display }} • {{ member.email }}</div>
+                                    {% if member.active_voice_channel %}
+                                        <div class="text-accent small mt-1">
+                                            <i class="bi bi-mic-fill me-1"></i>{{ member.voice_presence_text }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="channel-admin-actions">
+                                    {% if row.can_toggle_moderator %}
+                                        <form method="post" action="{% url 'chat:toggle_channel_moderator' channel.slug member.pk %}">
+                                            {% csrf_token %}
+                                            <button class="btn {% if row.is_channel_moderator %}btn-accent-outline{% else %}btn-accent{% endif %} btn-sm composer-action-btn" type="submit">
+                                                {% if row.is_channel_moderator %}Usuń moderatora{% else %}Nadaj moderatora{% endif %}
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    {% if row.can_remove %}
+                                        <form method="post" action="{% url 'chat:remove_channel_member' channel.slug member.pk %}">
+                                            {% csrf_token %}
+                                            <button class="btn btn-accent-outline btn-sm composer-action-btn" type="submit">Usuń z kanału</button>
+                                        </form>
+                                    {% endif %}
+                                    {% if row.can_ban %}
+                                        <form method="post" action="{% url 'chat:ban_channel_member' channel.slug member.pk %}">
+                                            {% csrf_token %}
+                                            <button class="btn btn-chat-danger btn-sm composer-action-btn" type="submit">Zablokuj na kanale</button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endwith %}
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+
+        <div class="col-12 col-xxl-5">
+            <section class="panel-subtle h-100">
+                <div class="panel-subtle__head">
+                    <h2>Dodaj użytkowników</h2>
+                    <p>Wyszukaj użytkownika po loginie, emailu albo opisie i dodaj go do kanału bez rozwijanej listy.</p>
+                </div>
+
+                <form method="get" class="channel-admin-search-form">
+                    <input class="form-control discord-input" type="search" name="q" value="{{ query }}" placeholder="Szukaj użytkownika">
+                    <button class="btn btn-accent composer-action-btn" type="submit">Szukaj</button>
+                </form>
+
+                {% if query %}
+                    <div class="channel-admin-search-result-label">Wyniki dla: <strong>{{ query }}</strong></div>
+                {% endif %}
+
+                <div class="member-list mt-3">
+                    {% for person in available_users %}
+                        <div class="member-card channel-admin-member-card">
+                            <div class="avatar-badge {% if person.effective_status == 'online' %}is-online{% else %}is-offline{% endif %}">
+                                {% if person.avatar_url %}
+                                    <img src="{{ person.avatar_url }}" alt="{{ person.username }}">
+                                {% else %}
+                                    <span>{{ person.username|slice:":1"|upper }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">{{ person.username }}</div>
+                                <div class="text-secondary small">{{ person.email }}</div>
+                            </div>
+                            <form method="post" action="{% url 'chat:add_channel_member' channel.slug %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="member_id" value="{{ person.pk }}">
+                                <button class="btn btn-accent btn-sm composer-action-btn" type="submit">Dodaj</button>
+                            </form>
+                        </div>
+                    {% empty %}
+                        <div class="empty-shell">
+                            {% if query %}
+                                Nie znaleziono użytkowników pasujących do wyszukiwania.
+                            {% else %}
+                                Zacznij wpisywać login albo email, aby wyszukać użytkowników do dodania.
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+
+        <div class="col-12">
+            <section class="panel-subtle">
+                <div class="panel-subtle__head">
+                    <h2>Zablokowani na kanale</h2>
+                    <p>Osoby z tej listy nie mogą ponownie dołączyć do kanału, dopóki moderator kanału albo właściciel ich nie odbanuje.</p>
+                </div>
+
+                <div class="member-list">
+                    {% for row in banned_rows %}
+                        {% with member=row.member %}
+                            <div class="member-card channel-admin-member-card">
+                                <div class="avatar-badge {% if member.effective_status == 'online' %}is-online{% else %}is-offline{% endif %}">
+                                    {% if member.avatar_url %}
+                                        <img src="{{ member.avatar_url }}" alt="{{ member.username }}">
+                                    {% else %}
+                                        <span>{{ member.username|slice:":1"|upper }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                        <div class="fw-semibold">{{ member.username }}</div>
+                                        <span class="chat-room-badge">Zablokowany</span>
+                                    </div>
+                                    <div class="text-secondary small">{{ member.get_role_display }} • {{ member.email }}</div>
+                                </div>
+                                {% if row.can_unban %}
+                                    <form method="post" action="{% url 'chat:unban_channel_member' channel.slug member.pk %}">
+                                        {% csrf_token %}
+                                        <button class="btn btn-accent btn-sm composer-action-btn" type="submit">Odbanuj</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        {% endwith %}
+                    {% empty %}
+                        <div class="empty-shell">Nikt nie jest obecnie zablokowany na tym kanale.</div>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+    </div>
+</section>
+{% endblock %}

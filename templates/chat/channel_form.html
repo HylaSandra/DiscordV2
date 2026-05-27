@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Nowy kanał • DiscordV2{% endblock %}
+
+{% block content %}
+<section class="panel-shell panel-shell--narrow">
+    <div class="panel-subtle__head">
+        <h1 class="section-title mb-0">Utwórz nowy kanał</h1>
+        <p>Każdy użytkownik może utworzyć własny kanał i samodzielnie zarządzać jego uczestnikami.</p>
+    </div>
+    <form method="post" class="panel-subtle">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="mb-3">
+                <label class="form-label">{{ field.label }}</label>
+                {% if field.name == "kind" or field.name == "audience" %}
+                    <div class="app-select-shell">
+                        {{ field }}
+                    </div>
+                {% else %}
+                    {{ field }}
+                {% endif %}
+                {% if field.errors %}
+                    <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
+                {% endif %}
+            </div>
+        {% endfor %}
+        <button class="btn btn-accent" type="submit">Utwórz kanał</button>
+    </form>
+</section>
+{% endblock %}

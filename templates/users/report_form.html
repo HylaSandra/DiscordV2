@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Zgłoś użytkownika • DiscordV2{% endblock %}
+
+{% block content %}
+<section class="panel-shell panel-shell--wide">
+    <div class="section-heading">
+        <div>
+            <span class="hero-kicker">Moderacja</span>
+            <h1 class="section-title">Zgłoś użytkownika</h1>
+            <p class="text-secondary mb-0">Przekaż moderatorom, co się wydarzyło i dlaczego wymaga to reakcji.</p>
+        </div>
+        <a class="btn btn-accent-outline btn-sm" href="{% url 'users:directory' %}">Wróć do użytkowników</a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="panel-subtle h-100">
+                <div class="member-card border-0 bg-transparent p-0">
+                    <div class="avatar-badge avatar-badge--xl {% if target_user.effective_status == 'online' %}is-online{% else %}is-offline{% endif %}">
+                        {% if target_user.avatar_url %}
+                            <img src="{{ target_user.avatar_url }}" alt="{{ target_user.username }}">
+                        {% else %}
+                            <span>{{ target_user.username|slice:":1"|upper }}</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h2 class="h4 mb-1">{{ target_user.username }}</h2>
+                        <div class="text-secondary small">{{ target_user.get_role_display }} • {{ target_user.email }}</div>
+                        <p class="text-secondary mb-0 mt-3">{{ target_user.bio|default:"Brak opisu." }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <form method="post" class="panel-subtle report-form-shell">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ field.label }}</label>
+                        {% if field.name == "reason" %}
+                            <div class="app-select-shell">
+                                {{ field }}
+                            </div>
+                        {% else %}
+                            {{ field }}
+                        {% endif %}
+                        {% if field.errors %}
+                            <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-accent" type="submit">Wyślij zgłoszenie</button>
+                    <a class="btn btn-accent-outline" href="{% url 'users:directory' %}">Anuluj</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

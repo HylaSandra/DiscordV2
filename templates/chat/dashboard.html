@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Panel • DiscordV2{% endblock %}
+
+{% block content %}
+<section class="panel-shell panel-shell--wide">
+    <div class="section-heading">
+        <div>
+            <span class="hero-kicker">Workspace</span>
+            <h1 class="section-title">Panel komunikacji</h1>
+        </div>
+        <a class="btn btn-accent" href="{% url 'chat:create_channel' %}">Nowy kanał</a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-6">
+            <div class="panel-subtle h-100">
+                <div class="panel-subtle__head">
+                    <h2>Kanały tekstowe</h2>
+                    <p>Przestrzenie tekstowe z historią rozmowy, załącznikami i własnym zarządzaniem uczestnikami.</p>
+                </div>
+                <div class="row g-3">
+                    {% for channel in text_channels %}
+                        <div class="col-12">
+                            <div class="channel-card">
+                                <div>
+                                    <div class="channel-card__header">
+                                        <span class="channel-glyph">#</span>
+                                        <h3 class="h6 mb-0">{{ channel.name }}</h3>
+                                        <span class="chat-room-badge">{{ channel.get_audience_display }}</span>
+                                    </div>
+                                    <p class="text-secondary mb-0">{{ channel.description|default:"Brak opisu kanału." }}</p>
+                                </div>
+                                {% if channel.id in joined_channel_ids %}
+                                    <a class="btn btn-accent-outline btn-sm" href="{{ channel.get_absolute_url }}">Otwórz</a>
+                                {% elif channel.audience == "public" or user.can_administer %}
+                                    <a class="btn btn-accent btn-sm" href="{% url 'chat:join_channel' channel.slug %}">Dołącz</a>
+                                {% else %}
+                                    <span class="btn btn-accent-outline btn-sm disabled">Tylko po dodaniu</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="col-12">
+                            <div class="empty-shell">Brak kanałów tekstowych.</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="panel-subtle h-100">
+                <div class="panel-subtle__head">
+                    <h2>Kanały głosowe</h2>
+                    <p>Rozmowy audio przez WebRTC z takim samym podziałem na kanały publiczne i grupowe.</p>
+                </div>
+                <div class="row g-3">
+                    {% for channel in voice_channels %}
+                        <div class="col-12">
+                            <div class="channel-card">
+                                <div>
+                                    <div class="channel-card__header">
+                                        <span class="channel-glyph"><i class="bi bi-mic-fill"></i></span>
+                                        <h3 class="h6 mb-0">{{ channel.name }}</h3>
+                                        <span class="chat-room-badge">{{ channel.get_audience_display }}</span>
+                                    </div>
+                                    <p class="text-secondary mb-0">{{ channel.description|default:"Kanał głosowy gotowy do rozmowy." }}</p>
+                                </div>
+                                {% if channel.id in joined_channel_ids %}
+                                    <a class="btn btn-accent-outline btn-sm" href="{{ channel.get_absolute_url }}">Otwórz</a>
+                                {% elif channel.audience == "public" or user.can_administer %}
+                                    <a class="btn btn-accent btn-sm" href="{% url 'chat:join_channel' channel.slug %}">Dołącz</a>
+                                {% else %}
+                                    <span class="btn btn-accent-outline btn-sm disabled">Tylko po dodaniu</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="col-12">
+                            <div class="empty-shell">Brak kanałów głosowych.</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="panel-shell panel-shell--wide mt-4">
+    <div class="panel-subtle__head">
+        <h2>Wiadomości prywatne</h2>
+        <p>Twoje aktywne rozmowy prywatne.</p>
+    </div>
+    <div class="row g-3">
+        {% for thread in direct_threads %}
+            <div class="col-md-6 col-xxl-4">
+                <a class="dm-card text-decoration-none" href="{{ thread.get_absolute_url }}">
+                    <span class="dm-card__icon"><i class="bi bi-chat-square-heart-fill"></i></span>
+                    <div>
+                        <strong>
+                            {% if thread.user_one == user %}{{ thread.user_two.username }}{% else %}{{ thread.user_one.username }}{% endif %}
+                        </strong>
+                        <div class="text-secondary small">Otwórz prywatną rozmowę</div>
+                    </div>
+                </a>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="empty-shell">Brak rozpoczętych wiadomości prywatnych. Otwórz katalog użytkowników i zacznij rozmowę.</div>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,210 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}DiscordV2{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    <div class="site-glow site-glow-a"></div>
+    <div class="site-glow site-glow-b"></div>
+
+    <nav class="navbar navbar-expand-lg discord-navbar sticky-top">
+        <div class="container-fluid px-3 px-lg-4">
+            <a class="navbar-brand brand-mark" href="{% url 'core:home' %}">
+                <span class="brand-mark__dot"></span>
+                DiscordV2
+            </a>
+            <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                {% if user.is_authenticated %}
+                    <form class="ms-lg-4 my-3 my-lg-0 flex-grow-1" action="{% url 'core:search' %}" method="get">
+                        <div class="input-group search-shell">
+                            <span class="input-group-text border-0 bg-transparent text-secondary">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input class="form-control border-0 shadow-none bg-transparent text-light" type="search" name="q" placeholder="Szukaj użytkowników i kanałów">
+                        </div>
+                    </form>
+                {% endif %}
+                <ul class="navbar-nav {% if user.is_authenticated %}ms-lg-3{% else %}ms-lg-auto{% endif %} align-items-lg-center gap-lg-2">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'chat:dashboard' %}">Panel</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'users:directory' %}">Użytkownicy</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'chat:manage_channels' %}">Kanały</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'users:reports' %}">Zgłoszenia</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link position-relative" href="{% url 'core:notifications' %}">
+                                Powiadomienia
+                                {% if unread_notifications_count %}
+                                    <span class="notification-pill">{{ unread_notifications_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'users:profile' %}">{{ user.username }}</a>
+                        </li>
+                        <li class="nav-item">
+                            <form method="post" action="{% url 'logout' %}">
+                                {% csrf_token %}
+                                <button class="btn btn-accent-outline btn-sm" type="submit">Wyloguj</button>
+                            </form>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'users:login' %}">Logowanie</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="btn btn-accent btn-sm" href="{% url 'users:register' %}">Załóż konto</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-3 px-lg-4 py-4 app-wrap">
+        <div class="row g-4">
+            {% if user.is_authenticated %}
+                <aside class="col-12 col-xl-3">
+                    <div class="sidebar-stack">
+                        <section class="panel-shell">
+                            <div class="panel-shell__header">
+                                <span>Role i status</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="avatar-badge {% if user.effective_status == 'online' %}is-online{% else %}is-offline{% endif %}">
+                                    {% if user.avatar_url %}
+                                        <img src="{{ user.avatar_url }}" alt="{{ user.username }}">
+                                    {% else %}
+                                        <span>{{ user.username|slice:":1"|upper }}</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <div class="fw-semibold">{{ user.username }}</div>
+                                    <div class="text-secondary small">{{ user.get_role_display }} • {{ user.effective_status }}</div>
+                                    {% if user.active_voice_channel %}
+                                        <div class="text-accent small mt-1">
+                                            <i class="bi bi-mic-fill me-1"></i>{{ user.voice_presence_text }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="panel-shell">
+                            <div class="panel-shell__header d-flex justify-content-between align-items-center">
+                                <span>Kanały tekstowe</span>
+                                <a class="text-accent small text-decoration-none" href="{% url 'chat:dashboard' %}">Zobacz wszystkie</a>
+                            </div>
+                            <div class="stack-list">
+                                {% for channel in nav_text_channels %}
+                                    <a class="stack-link {% if channel.id in unread_channel_ids %}stack-link--unread{% endif %}" href="{{ channel.get_absolute_url }}">
+                                        <span class="stack-link__content">
+                                            <span class="stack-link__label"># {{ channel.name }}</span>
+                                        </span>
+                                        <span class="stack-link__meta">
+                                            {% if channel.id in unread_channel_ids %}
+                                                <span class="stack-link__dot" title="Nieprzeczytane wiadomości"></span>
+                                            {% endif %}
+                                        </span>
+                                    </a>
+                                {% empty %}
+                                    <div class="text-secondary small">Nie dołączono jeszcze do kanałów tekstowych.</div>
+                                {% endfor %}
+                            </div>
+                        </section>
+
+                        <section class="panel-shell">
+                            <div class="panel-shell__header">
+                                <span>Kanały głosowe</span>
+                            </div>
+                            <div class="stack-list">
+                                {% for channel in nav_voice_channels %}
+                                    <a class="stack-link" href="{{ channel.get_absolute_url }}">
+                                        <span class="stack-link__content">
+                                            <i class="bi bi-mic-fill"></i>
+                                            <span class="stack-link__label">{{ channel.name }}</span>
+                                        </span>
+                                        <span class="stack-link__meta">
+                                            {% if channel.active_voice_count %}
+                                                <span class="stack-link__pill">
+                                                    Na żywo{% if channel.active_voice_count > 1 %} · {{ channel.active_voice_count }}{% endif %}
+                                                </span>
+                                            {% endif %}
+                                        </span>
+                                    </a>
+                                {% empty %}
+                                    <div class="text-secondary small">Brak aktywnych kanałów głosowych.</div>
+                                {% endfor %}
+                            </div>
+                        </section>
+
+                        <section class="panel-shell">
+                            <div class="panel-shell__header">
+                                <span>Wiadomości prywatne</span>
+                            </div>
+                            <div class="stack-list">
+                                {% for thread in nav_dm_threads %}
+                                    <a class="stack-link {% if thread.id in unread_thread_ids %}stack-link--unread{% endif %}" href="{{ thread.get_absolute_url }}">
+                                        <span class="stack-link__content">
+                                            <i class="bi bi-chat-left-text"></i>
+                                            <span class="stack-link__label">
+                                                {% if thread.user_one == user %}{{ thread.user_two.username }}{% else %}{{ thread.user_one.username }}{% endif %}
+                                            </span>
+                                        </span>
+                                        <span class="stack-link__meta">
+                                            {% if thread.id in unread_thread_ids %}
+                                                <span class="stack-link__dot" title="Nieprzeczytane wiadomości"></span>
+                                            {% endif %}
+                                        </span>
+                                    </a>
+                                {% empty %}
+                                    <div class="text-secondary small">Brak prywatnych rozmów.</div>
+                                {% endfor %}
+                            </div>
+                        </section>
+                    </div>
+                </aside>
+            {% endif %}
+
+            <main class="{% if user.is_authenticated %}col-12 col-xl-9{% else %}col-12{% endif %}">
+                {% if messages %}
+                    <div class="toast-stack mb-4">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags|default:'secondary' }} discord-alert mb-2" role="alert">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <div id="live-toast-area" class="live-toast-area"></div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/app.js' %}" defer></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

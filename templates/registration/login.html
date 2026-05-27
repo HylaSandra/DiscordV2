@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Logowanie • DiscordV2{% endblock %}
+
+{% block content %}
+<section class="auth-panel auth-panel--solo">
+    <div class="auth-panel__copy">
+        <span class="hero-kicker">Powrót do komunikacji</span>
+        <h1>Wróć do rozmów, kanałów i społeczności.</h1>
+        <p>Ciemny interfejs, szybki dostęp do wiadomości prywatnych i komunikacja w czasie rzeczywistym w jednym miejscu.</p>
+    </div>
+    <div class="auth-panel--form">
+        <h2>Zaloguj się</h2>
+        <p class="text-secondary mb-4">Użyj loginu lub adresu email.</p>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="mb-3">
+                    <label class="form-label">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger discord-alert">{{ form.non_field_errors|striptags }}</div>
+            {% endif %}
+            <button class="btn btn-accent w-100 mt-2" type="submit">Wejdź do aplikacji</button>
+        </form>
+        <p class="auth-switch">Nie masz konta? <a href="{% url 'users:register' %}">Zarejestruj się</a></p>
+    </div>
+</section>
+{% endblock %}

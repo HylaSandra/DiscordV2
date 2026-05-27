@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Wyszukiwanie • DiscordV2{% endblock %}
+
+{% block content %}
+<section class="panel-shell panel-shell--wide">
+    <div class="section-heading">
+        <div>
+            <span class="hero-kicker">Wyniki</span>
+            <h1 class="section-title">Szukaj w aplikacji</h1>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="panel-subtle h-100">
+                <div class="panel-subtle__head">
+                    <h2>Użytkownicy</h2>
+                    <p>Zapytanie: {{ query|default:"brak" }}</p>
+                </div>
+                {% for person in search_users %}
+                    <div class="user-row-card">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="avatar-badge {% if person.effective_status == 'online' %}is-online{% else %}is-offline{% endif %}">
+                                {% if person.avatar_url %}
+                                    <img src="{{ person.avatar_url }}" alt="{{ person.username }}">
+                                {% else %}
+                                    <span>{{ person.username|slice:":1"|upper }}</span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <div class="fw-semibold">{{ person.username }}</div>
+                                <div class="text-secondary small">{{ person.email }}</div>
+                                {% if person.active_voice_channel %}
+                                    <div class="text-accent small mt-1">
+                                        <i class="bi bi-mic-fill me-1"></i>{{ person.voice_presence_text }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if person != user %}
+                            <a class="btn btn-accent-outline btn-sm" href="{% url 'chat:start_thread' person.username %}">Wiadomość prywatna</a>
+                        {% endif %}
+                    </div>
+                {% empty %}
+                    <div class="empty-shell">Brak użytkowników pasujących do zapytania.</div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="panel-subtle h-100">
+                <div class="panel-subtle__head">
+                    <h2>Kanały</h2>
+                    <p>Dostępne dla Twojego konta.</p>
+                </div>
+                {% for channel in search_channels %}
+                    <div class="channel-card">
+                        <div>
+                            <div class="channel-card__header">
+                                <span class="channel-glyph">
+                                    {% if channel.is_voice %}<i class="bi bi-mic-fill"></i>{% else %}#{% endif %}
+                                </span>
+                                <h3 class="h6 mb-0">{{ channel.name }}</h3>
+                                <span class="chat-room-badge">{{ channel.get_audience_display }}</span>
+                            </div>
+                            <p class="text-secondary mb-0">{{ channel.description|default:"Brak opisu." }}</p>
+                        </div>
+                        {% if user.can_administer or channel.id in joined_channel_ids %}
+                            <a class="btn btn-accent-outline btn-sm" href="{{ channel.get_absolute_url }}">Otwórz</a>
+                        {% elif channel.audience == "public" %}
+                            <a class="btn btn-accent btn-sm" href="{% url 'chat:join_channel' channel.slug %}">Dołącz</a>
+                        {% else %}
+                            <span class="btn btn-accent-outline btn-sm disabled">Tylko po dodaniu</span>
+                        {% endif %}
+                    </div>
+                {% empty %}
+                    <div class="empty-shell">Brak kanałów zgodnych z zapytaniem.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
