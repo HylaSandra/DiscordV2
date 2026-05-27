@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     buildCommand: bash build.sh
-    startCommand: python -m gunicorn config.asgi:application -k uvicorn.workers.UvicornWorker
+    startCommand: python -m daphne -b 0.0.0.0 -p $PORT config.asgi:application
     envVars:
       - key: SECRET_KEY
         generateValue: true
