@@ -429,7 +429,6 @@ def build_voice_room_context(request, channel, mode):
         "voice_room_data": {
             "mode": mode,
             "websocketPath": f"/ws/voice/{channel.slug}/",
-            "sessionUrl": reverse("chat:voice_session", args=[channel.slug]),
             "viewerId": request.user.pk,
             "viewerName": request.user.username,
             "viewerAvatar": request.user.avatar_url,
@@ -469,16 +468,7 @@ def voice_room(request, slug):
 
 @login_required
 def voice_session(request, slug):
-    channel = get_object_or_404(
-        Channel.objects.select_related("created_by").prefetch_related(
-            "members", "moderators"
-        ),
-        slug=slug,
-        kind=Channel.KIND_VOICE,
-    )
-    ensure_member_access(request.user, channel)
-    context = build_voice_room_context(request, channel, mode="session")
-    return render(request, "chat/voice_session.html", context)
+    return redirect("chat:voice_room", slug=slug)
 
 
 @login_required
