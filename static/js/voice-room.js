@@ -35,6 +35,53 @@
         }
     }
 
+    function setStatus(text) {
+        statusNode.textContent = text;
+    }
+
+    function describeMicrophoneError(error) {
+        const errorName = error && error.name ? error.name : "";
+        const errorMessage = error && error.message ? error.message : "";
+
+        if (errorMessage === "socket_error") {
+            return "Nie udało się połączyć z kanałem głosowym. Sprawdź połączenie WebSocket i konfigurację Render.";
+        }
+
+        if (!window.isSecureContext) {
+            return "Kanał głosowy wymaga bezpiecznego połączenia HTTPS.";
+        }
+
+        if (window.top !== window.self) {
+            return "Ta strona jest otwarta wewnątrz ramki. Otwórz aplikację bezpośrednio w przeglądarce i zezwól na mikrofon.";
+        }
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            return "Twoja przeglądarka nie obsługuje dostępu do mikrofonu.";
+        }
+
+        if (errorName === "NotAllowedError" || errorName === "PermissionDeniedError") {
+            return "Przeglądarka zablokowała dostęp do mikrofonu. Kliknij ikonę kłódki przy adresie strony i zezwól na mikrofon.";
+        }
+
+        if (errorName === "NotFoundError" || errorName === "DevicesNotFoundError") {
+            return "Nie wykryto żadnego mikrofonu na tym urządzeniu.";
+        }
+
+        if (errorName === "NotReadableError" || errorName === "TrackStartError") {
+            return "Nie udało się uruchomić mikrofonu. Sprawdź, czy nie korzysta z niego już inna aplikacja.";
+        }
+
+        if (errorName === "SecurityError" || errorName === "TypeError") {
+            return "Przeglądarka nie pozwoliła uruchomić mikrofonu w tym kontekście strony.";
+        }
+
+        if (errorName === "AbortError") {
+            return "Próba uruchomienia mikrofonu została przerwana. Spróbuj ponownie.";
+        }
+
+        return "Nie udało się uzyskać dostępu do mikrofonu.";
+    }
+
     function orderedParticipants() {
         return Array.from(participants.values()).sort((left, right) => {
             const leftOwner = left.id === config.ownerId ? 0 : 1;
@@ -54,26 +101,33 @@
     }
 
     function renderParticipants() {
-        const html = orderedParticipants().map((user) => `
+        const html = orderedParticipants().map(
+            (user) => `
             <div class="member-card">
-                <div class="avatar-badge is-online">${user.avatar_url ? `<img src="${escapeHtml(user.avatar_url)}" alt="${escapeHtml(user.username)}">` : `<span>${escapeHtml(user.username.charAt(0).toUpperCase())}</span>`}</div>
+                <div class="avatar-badge is-online">${
+                    user.avatar_url
+                        ? `<img src="${escapeHtml(user.avatar_url)}" alt="${escapeHtml(user.username)}">`
+                        : `<span>${escapeHtml(user.username.charAt(0).toUpperCase())}</span>`
+                }</div>
                 <div class="flex-grow-1">
                     <div class="d-flex flex-wrap align-items-center gap-2">
                         <div class="fw-semibold">${escapeHtml(user.username)}</div>
                         ${user.id === config.ownerId ? '<span class="chat-room-badge">Właściciel</span>' : ""}
-                        ${user.id !== config.ownerId && moderatorIds.has(user.id) ? '<span class="chat-room-badge">Moderator kanału</span>' : ""}
+                        ${
+                            user.id !== config.ownerId && moderatorIds.has(user.id)
+                                ? '<span class="chat-room-badge">Moderator kanału</span>'
+                                : ""
+                        }
                     </div>
                     <div class="text-secondary small">${user.id === config.viewerId ? "Ty" : "Połączony(a)"}</div>
                 </div>
             </div>
-        `);
+        `
+        );
+
         participantsNode.innerHTML = html.length
             ? html.join("")
             : '<div class="empty-shell">Nikogo nie ma na kanale.</div>';
-    }
-
-    function setStatus(text) {
-        statusNode.textContent = text;
     }
 
     function send(data) {
@@ -88,10 +142,12 @@
             peer.close();
             peers.delete(userId);
         }
+
         const audio = document.getElementById(`remote-audio-${userId}`);
         if (audio) {
             audio.remove();
         }
+
         participants.delete(userId);
         renderParticipants();
     }
@@ -122,6 +178,7 @@
         if (!localStream) {
             return null;
         }
+
         if (peers.has(remoteUser.id)) {
             return peers.get(remoteUser.id);
         }
@@ -134,6 +191,7 @@
         });
 
         localStream.getTracks().forEach((track) => peer.addTrack(track, localStream));
+
         peer.onicecandidate = (event) => {
             if (event.candidate) {
                 send({
@@ -143,9 +201,11 @@
                 });
             }
         };
+
         peer.ontrack = (event) => {
             attachRemoteStream(remoteUser.id, event.streams[0]);
         };
+
         peers.set(remoteUser.id, peer);
         return peer;
     }
@@ -155,6 +215,7 @@
         if (!peer) {
             return;
         }
+
         const offer = await peer.createOffer();
         await peer.setLocalDescription(offer);
         send({
@@ -168,6 +229,7 @@
         if (socket && socket.readyState === WebSocket.OPEN) {
             return Promise.resolve();
         }
+
         if (socketReady) {
             return socketReady;
         }
@@ -192,7 +254,10 @@
                 const payload = data.payload || {};
                 const remoteUser = payload.user || payload.from;
 
-                if (data.event === "membership_revoked" || data.event === "channel_banned") {
+                if (
+                    data.event === "membership_revoked" ||
+                    data.event === "channel_banned"
+                ) {
                     const actionText =
                         data.event === "channel_banned"
                             ? "zablokował(a) Cię na kanale"
@@ -209,7 +274,11 @@
                     participants.set(remoteUser.id, remoteUser);
                     renderParticipants();
                     if (hasJoined && remoteUser.id !== config.viewerId) {
-                        send({ action: "presence-sync", target: remoteUser.id, data: {} });
+                        send({
+                            action: "presence-sync",
+                            target: remoteUser.id,
+                            data: {},
+                        });
                         await makeOffer(remoteUser);
                     }
                     return;
@@ -322,7 +391,10 @@
             leaveButton.disabled = false;
             setStatus("Połączono z kanałem głosowym.");
         } catch (error) {
-            toast("Kanał głosowy", "Nie udało się uzyskać dostępu do mikrofonu.");
+            const details = describeMicrophoneError(error);
+            console.error("Voice room microphone error:", error);
+            setStatus(details);
+            toast("Kanał głosowy", details);
         }
     }
 
@@ -357,6 +429,7 @@
         if (!localStream) {
             return;
         }
+
         muted = !muted;
         localStream.getAudioTracks().forEach((track) => {
             track.enabled = !muted;
