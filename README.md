@@ -5,12 +5,11 @@ DiscordV2 to aplikacja komunikacyjna w Django inspirowana Discordem. Projekt zaw
 - rejestrację, logowanie, profile i avatary,
 - role `Administrator`, `Moderator`, `Użytkownik`,
 - kanały tekstowe publiczne, grupowe i głosowe,
-- wiadomości prywatne 1:1,
+- wiadomości prywatne,
 - wiadomości tekstowe, obrazki i nagrania głosowe,
-- edytowanie, usuwanie oraz reakcje emoji,
+- edytowanie i usuwanie wiadomości oraz reakcje,
 - moderację użytkowników,
-- wyszukiwarkę, status online/offline i powiadomienia,
-- konfigurację gotową pod wdrożenie na Render.
+- wyszukiwarkę, status online/offline i powiadomienia.
 
 ## Uruchomienie lokalne
 
