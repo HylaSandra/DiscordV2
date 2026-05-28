@@ -54,18 +54,3 @@ python manage.py runserver
 
 Projekt zawiera pliki `build.sh` i `render.yaml`.
 
-Po połączeniu repozytorium z Render:
-
-1. utwórz usługę Web Service,
-2. podłącz bazę PostgreSQL,
-3. podłącz Redis/Key Value dla websocketów,
-4. ustaw start przez ASGI (`config.asgi:application`),
-5. po wdrożeniu utwórz superusera w Render Shell.
-
-Jeżeli korzystasz z darmowych planów Render, pamiętaj, że darmowa baza Postgres ma ograniczenia i według aktualnej dokumentacji może wygasnąć po 30 dniach.
-
-## Uwaga
-
-W tym środowisku roboczym nie było dostępnego interpretera Pythona, więc projekt został przygotowany ręcznie i nie został tutaj uruchomiony. Przed oddaniem pracy warto lokalnie wykonać `makemigrations`, `migrate` i test przejścia przez główne scenariusze.
-
-Skrypt `build.sh` wykonuje `makemigrations` przed `migrate`, aby pierwsze wdrożenie zadziałało nawet wtedy, gdy migracje nie zostały wcześniej wygenerowane lokalnie. Do normalnej dalszej pracy nadal najlepiej jest wygenerować i zatwierdzić migracje we własnym repozytorium.
