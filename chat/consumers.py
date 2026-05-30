@@ -90,6 +90,10 @@ class VoiceSignalingConsumer(AsyncJsonWebsocketConsumer):
 
     async def receive_json(self, content, **kwargs):
         action = content.get("action")
+        if action == "ping":
+            await self.send_json({"event": "pong"})
+            return
+
         if action == "join-room":
             await self.mark_active_voice_channel()
             self.has_joined_room = True

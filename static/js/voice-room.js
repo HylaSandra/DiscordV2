@@ -17,8 +17,15 @@
         (config.initialParticipants || []).map((user) => [user.id, user])
     );
     const moderatorIds = new Set(config.moderatorIds || []);
+    const manuallyClosedSockets = new WeakSet();
+    const SOCKET_KEEPALIVE_MS = 25000;
+    const SOCKET_RECONNECT_BASE_MS = 1000;
+    const SOCKET_RECONNECT_MAX_MS = 30000;
     let socket = null;
     let socketReady = null;
+    let keepaliveTimer = null;
+    let reconnectTimer = null;
+    let reconnectAttempts = 0;
     let localStream = null;
     let muted = false;
     let hasJoined = false;
@@ -148,6 +155,67 @@
         }
     }
 
+    function stopKeepalive() {
+        if (keepaliveTimer) {
+            window.clearInterval(keepaliveTimer);
+            keepaliveTimer = null;
+        }
+    }
+
+    function startKeepalive() {
+        stopKeepalive();
+        send({ action: "ping" });
+        keepaliveTimer = window.setInterval(() => {
+            send({ action: "ping" });
+        }, SOCKET_KEEPALIVE_MS);
+    }
+
+    function stopReconnect() {
+        if (reconnectTimer) {
+            window.clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+        }
+    }
+
+    function makeOffersToKnownParticipants() {
+        participants.forEach((user, userId) => {
+            if (userId !== config.viewerId) {
+                makeOffer(user).catch((error) => {
+                    console.error("Voice room renegotiation error:", error);
+                });
+            }
+        });
+    }
+
+    function scheduleReconnect() {
+        if (reconnectTimer) {
+            return;
+        }
+
+        const delay = Math.min(
+            SOCKET_RECONNECT_BASE_MS * 2 ** reconnectAttempts,
+            SOCKET_RECONNECT_MAX_MS
+        );
+        reconnectAttempts += 1;
+        reconnectTimer = window.setTimeout(async () => {
+            reconnectTimer = null;
+            try {
+                await connectSocket();
+                reconnectAttempts = 0;
+                if (hasJoined) {
+                    send({ action: "join-room" });
+                    clearPeers();
+                    makeOffersToKnownParticipants();
+                    setStatus("Przywrocono polaczenie z kanalem glosowym.");
+                } else {
+                    setIdleStatus();
+                }
+            } catch (error) {
+                scheduleReconnect();
+            }
+        }, delay);
+    }
+
     function cleanupPeer(userId) {
         const peer = peers.get(userId);
         if (peer) {
@@ -252,18 +320,22 @@
 
         socketReady = new Promise((resolve, reject) => {
             const scheme = window.location.protocol === "https:" ? "wss" : "ws";
-            socket = new WebSocket(
+            const nextSocket = new WebSocket(
                 `${scheme}://${window.location.host}${config.websocketPath}`
             );
+            socket = nextSocket;
 
-            socket.addEventListener("open", () => {
+            nextSocket.addEventListener("open", () => {
+                stopReconnect();
+                reconnectAttempts = 0;
+                startKeepalive();
                 if (!hasJoined) {
                     setIdleStatus();
                 }
                 resolve();
             });
 
-            socket.addEventListener("message", async (event) => {
+            nextSocket.addEventListener("message", async (event) => {
                 const data = JSON.parse(event.data);
                 const payload = data.payload || {};
                 const remoteUser = payload.user || payload.from;
@@ -366,17 +438,24 @@
                 }
             });
 
-            socket.addEventListener("close", () => {
-                socket = null;
-                socketReady = null;
+            nextSocket.addEventListener("close", () => {
+                stopKeepalive();
+                if (socket === nextSocket) {
+                    socket = null;
+                    socketReady = null;
+                }
+                if (manuallyClosedSockets.has(nextSocket)) {
+                    return;
+                }
                 setStatus(
                     hasJoined
                         ? "Połączenie z kanałem zostało zamknięte."
                         : "Podgląd kanału głosowego został zamknięty."
                 );
+                scheduleReconnect();
             });
 
-            socket.addEventListener(
+            nextSocket.addEventListener(
                 "error",
                 () => {
                     reject(new Error("socket_error"));
@@ -417,6 +496,8 @@
     }
 
     function leaveVoice() {
+        stopReconnect();
+        stopKeepalive();
         clearPeers();
         participants.delete(config.viewerId);
         renderParticipants();
@@ -428,6 +509,7 @@
 
         if (socket) {
             const closingSocket = socket;
+            manuallyClosedSockets.add(closingSocket);
             socket = null;
             socketReady = null;
             closingSocket.close();
